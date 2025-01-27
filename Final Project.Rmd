@@ -1,0 +1,90 @@
+---
+title: "Final Project"
+author: "Michelle Ling"
+date: "`r Sys.Date()`"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r 1}
+# load data
+library(astsa)
+library(xts)
+Birth <- read.csv("C:\\Users\\michl\\Downloads\\4870 Final Project\\Birth.csv")
+Birth <- ts(Birth, start=c(2003, 1), end=c(2023, 12), frequency=12)
+```
+
+```{r 2}
+# determine time series plot
+tsplot(Birth, main="birth")
+tsplot(log(Birth), main="logged birth")
+tsplot(diff(log(Birth)), main="1st difference of logged birth")
+
+# acf & pacf
+acf2(diff(log(Birth)))
+```
+
+```{r 3}
+# model 1
+# ARIMA(0,1,0)x(1,0,1)[12]
+mdl1 <- sarima(log(Birth),0,1,0,1,0,1,12, details=F)
+acf2(resid(mdl1$fit))
+```
+
+```{r 4}
+# model 2
+# ARIMA(2,1,0)x(1,1,1)[12]
+mdl2 <- sarima(log(Birth),2,1,0,1,1,1,12, details=F)
+acf2(resid(mdl2$fit))
+```
+
+```{r 5}
+# model 3
+# ARIMA(2,1,1)x(1,1,1)[12]
+mdl3 <- sarima(log(Birth),2,1,1,1,1,1,12, details=F) 
+acf2(resid(mdl3$fit)) 
+```
+
+```{r 6}
+# run auto.arima
+library(forecast)
+auto.arima(log(Birth))
+# model 4
+# ARIMA(2,1,2)x(0,1,1)[12]
+(mdlaa <- sarima(log(Birth),2,1,2,0,1,1,12, details=F))
+acf2(resid(mdlaa$fit))
+# AIC = -3.584242  AICc = -3.583164  BIC = -3.496966
+```
+
+```{r 7}
+# suggested models
+# model 2
+sarima(log(Birth), 2,1,0,1,1,1,12, details=F) 
+# model 4
+sarima(log(Birth), 2,1,2,0,1,1,12, details=F) # chosen model
+
+# forecast of suggested models
+# model 2
+sarima.for(log(Birth), n.ahead=24, 2,1,0,1,1,1,12, no.constant=F)
+# model 4
+sarima.for(log(Birth), n.ahead=24, 2,1,2,0,1,1,12, no.constant=F) # chosen model
+```
+
+
+```{r 8}
+# spectral analysis
+mvspec(log(Birth), demean=T)
+mvspec(diff(log(Birth)), demean=T)
+
+n<-dim(Birth)
+P<-Mod(fft(log(Birth))/sqrt(n))^2 # periodogram
+sP<-(4/n)*P # scaled periodogram
+Fr<-(1:n)/n # fundamental frequencies
+tsplot(Fr,sP,type="o", xlab="frequency", ylab="scaled periodogram", col=4, ylim=c(0,0.05))
+abline(v=.5,lty=5)
+axis(side=1,at=seq(.1,.9,by=.2))
+```
+
